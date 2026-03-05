@@ -1,0 +1,11 @@
+name = "agent-email-worker"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+[vars]
+# FORWARD_TO = "backup@gmail.com"  # Optional: backup forward while testing
+
+[[kv_namespaces]]
+binding = "INBOX"
+id = ""        # Fill in after: npx wrangler kv namespace create INBOX
+preview_id = ""
