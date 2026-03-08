@@ -17,10 +17,11 @@ A single Cloudflare Worker (`src/index.js`) that handles two concerns:
 ## API (all require `Authorization: Bearer <API_KEY>`)
 
 ```
-GET  /inbox                    List recent emails (default 20, ?limit=N)
-GET  /inbox/:id                Get full email by ID
-GET  /inbox/thread/:threadId   Get full thread with all messages in order
-POST /send                     Send an email via Resend
+GET  /inbox                       List recent emails (default 20, ?limit=N)
+GET  /inbox/:id                   Get full email by ID (includes attachments array)
+GET  /inbox/thread/:threadId      Get full thread with all messages in order
+GET  /inbox/attachment/:id        Fetch raw attachment/inline image bytes
+POST /send                        Send an email via Resend
 ```
 
 ### Send payload
@@ -42,6 +43,14 @@ Outgoing mail is automatically attributed as an EA to the operator (e.g. "Friday
 ## Thread tracking
 
 Emails are grouped by thread using `Message-ID`, `In-Reply-To`, and `References` headers. Each email has a `threadId` field. Use `GET /inbox/thread/:threadId` to read a full conversation.
+
+## Attachments & inline images
+
+Inbound attachments and inline images (CID embeds) are automatically extracted and stored in KV. Each email record includes an `attachments` array:
+```json
+[{ "id": "uuid", "filename": "image.jpg", "mimeType": "image/jpeg", "contentId": "<cid>", "disposition": "inline", "size": 12345 }]
+```
+Use `GET /inbox/attachment/:id` to retrieve the raw bytes.
 
 ## Notifications
 

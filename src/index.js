@@ -32,8 +32,47 @@ export default {
       }
     }
 
+    const emailId = crypto.randomUUID();
+
+    // Store attachments (inline images + regular attachments)
+    const attachmentMeta = [];
+    if (parsed.attachments && parsed.attachments.length > 0) {
+      for (const att of parsed.attachments) {
+        const attId = crypto.randomUUID();
+        // Convert ArrayBuffer to base64 for KV storage
+        const bytes = new Uint8Array(att.content);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const b64 = btoa(binary);
+
+        const attRecord = {
+          id: attId,
+          emailId,
+          filename: att.filename || 'attachment',
+          mimeType: att.mimeType || 'application/octet-stream',
+          contentId: att.contentId || null, // cid: reference from HTML
+          disposition: att.disposition || 'attachment',
+          size: att.content.byteLength,
+          data: b64,
+        };
+
+        await env.INBOX.put(`attachment:${attId}`, JSON.stringify(attRecord), {
+          expirationTtl: 90 * 24 * 60 * 60,
+        });
+
+        attachmentMeta.push({
+          id: attId,
+          filename: att.filename || 'attachment',
+          mimeType: att.mimeType || 'application/octet-stream',
+          contentId: att.contentId || null,
+          disposition: att.disposition || 'attachment',
+          size: att.content.byteLength,
+        });
+      }
+    }
+
     const email = {
-      id: crypto.randomUUID(),
+      id: emailId,
       from: message.from,
       to: message.to,
       subject: parsed.subject || '(no subject)',
@@ -44,6 +83,7 @@ export default {
       inReplyTo,
       references,
       threadId,
+      attachments: attachmentMeta,
     };
 
     // Store email
@@ -163,6 +203,24 @@ export default {
       return Response.json({ ...thread, emails: emails.filter(Boolean) });
     }
 
+    // GET /inbox/attachment/:id — get raw attachment bytes
+    if (url.pathname.startsWith('/inbox/attachment/')) {
+      const attId = url.pathname.split('/')[3];
+      const raw = await env.INBOX.get(`attachment:${attId}`);
+      if (!raw) return new Response('Not found', { status: 404 });
+      const att = JSON.parse(raw);
+      // Decode base64 back to binary
+      const binary = atob(att.data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return new Response(bytes, {
+        headers: {
+          'Content-Type': att.mimeType,
+          'Content-Disposition': `inline; filename="${att.filename}"`,
+        },
+      });
+    }
+
     // POST /send — send an email as friday@richardatkinson.dev
     if (url.pathname === '/send' && request.method === 'POST') {
       if (!env.RESEND_API_KEY) {
@@ -216,6 +274,6 @@ export default {
       return Response.json(result, { status: res.status });
     }
 
-    return new Response('Friday Inbox API\n\nGET /inbox\nGET /inbox/:id\nGET /inbox/thread/:threadId\nPOST /send', { status: 200 });
+    return new Response('Friday Inbox API\n\nGET /inbox\nGET /inbox/:id\nGET /inbox/thread/:threadId\nGET /inbox/attachment/:id\nPOST /send', { status: 200 });
   },
 };

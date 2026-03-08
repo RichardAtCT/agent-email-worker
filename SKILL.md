@@ -22,7 +22,7 @@ curl -s -H "Authorization: Bearer $INBOX_API_KEY" "$INBOX_API_URL/inbox?limit=10
 
 Returns: `[{ id, from, subject, date, threadId, isReply }]`
 
-## Read Email / Thread
+## Read Email / Thread / Attachments
 
 ```bash
 # Single email
@@ -30,7 +30,12 @@ curl -s -H "Authorization: Bearer $INBOX_API_KEY" "$INBOX_API_URL/inbox/<id>"
 
 # Full thread
 curl -s -H "Authorization: Bearer $INBOX_API_KEY" "$INBOX_API_URL/inbox/thread/<threadId>"
+
+# Fetch a raw attachment or inline image (returns binary with correct Content-Type)
+curl -s -H "Authorization: Bearer $INBOX_API_KEY" "$INBOX_API_URL/inbox/attachment/<attId>" -o image.jpg
 ```
+
+Each email includes an `attachments` array: `[{ id, filename, mimeType, contentId, disposition, size }]`. Inline images have a `contentId` matching the `cid:` references in the HTML body.
 
 ## Send Email
 
