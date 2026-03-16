@@ -234,7 +234,7 @@ export default {
         return new Response('Invalid JSON', { status: 400 });
       }
 
-      const { to, subject, text, html, replyTo: inReplyToHeader, references } = body;
+      const { to, cc, bcc, subject, text, html, replyTo: inReplyToHeader, references } = body;
       if (!to || !subject || (!text && !html)) {
         return new Response('Missing required fields: to, subject, text/html', { status: 400 });
       }
@@ -255,6 +255,8 @@ export default {
       const resendPayload = {
         from: 'Friday (EA to Richard Atkinson) <friday@richardatkinson.dev>',
         to: Array.isArray(to) ? to : [to],
+        ...(cc ? { cc: Array.isArray(cc) ? cc : [cc] } : {}),
+        ...(bcc ? { bcc: Array.isArray(bcc) ? bcc : [bcc] } : {}),
         subject,
         ...(finalText ? { text: finalText } : {}),
         ...(finalHtml ? { html: finalHtml } : {}),
@@ -277,3 +279,4 @@ export default {
     return new Response('Friday Inbox API\n\nGET /inbox\nGET /inbox/:id\nGET /inbox/thread/:threadId\nGET /inbox/attachment/:id\nPOST /send', { status: 200 });
   },
 };
+
